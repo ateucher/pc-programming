@@ -2,7 +2,7 @@ library("tidyverse")
 library("readxl")
 library("fs")
 
-## Create a for loop to make and save plots for each rodent site (plot)
+## Create a for loop to make and save a plot for each rodent site (plot)
 
 rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
 
@@ -44,17 +44,16 @@ data1967 <- read_excel("data/gapminder/1967.xlsx")
 data_manual <- bind_rows(data1952, data1957, data1962, data1967)
 
 # What problems do you see so far?
-# (I see two "real" problems, one philosophical problem)
+# (I see one "real" problems, one philosophical problem)
 
 # ?basename(), ?str_extract()
 get_year <- function(x) {
-  # ^\\d+ - starts with one or more digits
-  x |> basename() |> str_extract("^\\d+")
+  x |> basename() |> str_extract("[0-9]{4}")
 }
 
 get_year("taylor/swift/1989.txt")
 
-# ?set_names(), ?as.list()
+# ?set_names()
 paths <-
   fs::dir_ls("data/gapminder") |>
   set_names(get_year)
@@ -68,8 +67,20 @@ data <-
   list_rbind(names_to = "year") |>
   mutate(year = parse_number(year))
 
-# Rodent plots with purrr
+###################################################################
+##### Rodent plots with purrr
 
+rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
+
+rodent_counts <- rodents |>
+  filter(species == "DM") |>
+  group_by(year, plot) |>
+  summarise(n = n()) |>
+  ungroup()
+
+rodent_sites <- unique(rodent_counts$plot)
+
+# Make a list of plot objects, one for each site
 site_plots <- purrr::map(
   rodent_sites,
   \(p) {
@@ -86,9 +97,16 @@ site_plots <- purrr::map(
   }
 )
 
+# Print all plots
+site_plots
+
+# Print one plot
+site_plots[[15]]
+
+# Use purrr::walk2() to save all plots
 purrr::walk2(
-  site_plots,
-  rodent_sites,
+  site_plots, # list of plot objects
+  rodent_sites, # vector of site numbers
   \(p, n) {
     ggsave(
       filename = paste0(out_dir, "new_rodent_plot_", n, ".png"),

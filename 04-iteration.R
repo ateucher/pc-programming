@@ -2,7 +2,7 @@ library("tidyverse")
 library("readxl")
 library("fs")
 
-## Create a for loop to make and save plots for each rodent site (plot)
+## Create a for loop to make and save a plot for each rodent site (plot)
 
 rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
 
@@ -17,7 +17,7 @@ rodent_sites <- # vector of plot IDs
 out_dir <- "figures/rodent_sites/"
 dir_create(out_dir)
 
-for () {
+for (what are we iterating over) {
   site_data <- # create a data frame for this plot
 
   site_plot <- ggplot() +
@@ -34,7 +34,8 @@ for () {
   )
 }
 
-#### Functional programming with purrr
+##################################################
+#### Our turn: Functional programming with purrr
 
 ## Our turn
 data1952 <- read_excel("data/gapminder/1952.xlsx")
@@ -45,7 +46,7 @@ data1967 <- read_excel("data/gapminder/1967.xlsx")
 data_manual <- bind_rows(data1952, data1957, data1962, data1967)
 
 # What problems do you see so far?
-# (I see two "real" problems, one philosophical problem)
+# (I see one "real" problems, one philosophical problem)
 
 # ?basename(), ?str_extract()
 get_year <- function(x) {
@@ -54,7 +55,7 @@ get_year <- function(x) {
 
 get_year("taylor/swift/1989.txt")
 
-# ?as.list(), ?set_names()
+# ?set_names()
 paths <-
   # get the filepaths from the directory
   fs::dir_ls("data/gapminder") |>
@@ -71,12 +72,23 @@ data <-
 ###################################################################
 ##### Rodent plots with purrr
 
+rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
+
+rodent_counts <- rodents |>
+  filter(species == "DM") |>
+  group_by(year, plot) |>
+  summarise(n = n()) |>
+  ungroup()
+
+rodent_sites <- # vector of plot IDs
+
+# Make a list of plot objects, one for each site
 site_plots <- purrr::map(
   rodent_sites,
   \(p) {
     site_data <- # create a data frame for this plot
 
-    site_plot <- ggplot() +
+    site_plot <- ggplot(site_data, ) +
     geom_point() +
     labs(
       title = # Unique title for this plot,
@@ -86,6 +98,7 @@ site_plots <- purrr::map(
   }
 )
 
+# Use purrr::walk2() to save all plots
 purrr::walk2(
   site_plots,
   rodent_sites,
