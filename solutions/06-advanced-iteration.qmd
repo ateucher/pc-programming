@@ -1,0 +1,177 @@
+---
+title: "Power Analysis with Iteration"
+format: typst
+---
+
+## Introduction
+
+This document demonstrates how to use iteration with `purrr::map()` to run power analyses across multiple effect sizes. We'll use rodent population data and the `simr` package to assess statistical power for detecting trends over time.
+
+## Load Required Packages
+
+```{r}
+#| message: false
+library(dplyr)
+library(readr)
+library(purrr)
+library(lme4)
+library(simr)
+```
+
+
+```{r}
+#| include: false
+# This suppresses simr progress output for cleaner output
+# the include: false option hides this code chunk from the final document
+withr::local_options(simr::simrOptions(progress = FALSE))
+```
+
+## Prepare the Data
+
+We'll analyze counts of Merriam's Kangaroo Rat (*Dipodomys merriami*, species code "DM") from the Portal Project, grouping by year and plot.
+
+```{r}
+#| message: false
+rodents <- read_csv(here::here("PortalData/Rodents/Portal_rodent.csv"))
+
+# Our z-score function from before
+to_z <- function(x) {
+  (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+}
+
+rodent_counts <- rodents |>
+  filter(species == "DM") |>
+  group_by(year, plot) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  mutate(
+    plot = factor(plot),
+    nyear = to_z(year)
+  )
+
+head(rodent_counts)
+```
+
+## Fit a Mixed Model
+
+We fit a negative binomial generalized linear mixed model with plot as a random effect.
+
+```{r}
+rodent_mod <- glmer.nb(
+  n ~ nyear + (1 | plot),
+  data = rodent_counts
+)
+
+summary(rodent_mod)
+```
+
+## Create a Power Analysis Function
+
+This function automates the power analysis workflow:
+
+1. Sets a specified effect size for the year coefficient
+2. Extends the dataset to simulate additional time points
+3. Runs power simulations
+4. Returns results as a data frame
+
+```{r}
+run_pa <- function(
+  model,
+  fxsize,
+  yearcol = "nyear",
+  extend_n = 10,
+  nsim = 500,
+  alpha = 0.2
+) {
+  library(simr)
+  fixef(model)[yearcol] <- (log(fxsize))
+  model_extended <- extend(model, along = yearcol, n = extend_n)
+  result <- model_extended |>
+    powerSim(
+      nsim = nsim,
+      alpha = alpha
+    ) |>
+    summary() |>
+    as.data.frame()
+
+  dplyr::mutate(result, fxsize = fxsize, Design = "Full dataset")
+}
+```
+
+## Run Power Analysis Across Multiple Effect Sizes
+
+Using `map()`, we can iterate over a sequence of effect sizes and run the power analysis for each one. We'll start with a small example using just 10 simulations per effect size.
+
+```{r}
+fx_sizes <- seq(1.01, 1.05, by = 0.01)
+
+res_list <- map(
+  fx_sizes,
+  \(x) run_pa(rodent_mod, x, nsim = 10)
+)
+
+power_results <- list_rbind(res_list)
+power_results
+```
+
+## Advanced: Running in Parallel (Optional)
+
+The following section demonstrates how to speed up power analyses using parallel processing. The parallel approach can significantly reduce computation time when running many simulations.
+
+### Comparing Sequential vs Parallel Execution
+
+We'll compare the performance of sequential execution against parallel execution with 100 simulations across 10 effect sizes.
+
+#### Sequential Execution
+
+```{r}
+fx_sizes <- seq(1.01, 1.10, by = 0.01)
+
+tictoc::tic("Sequential")
+res_list <- map(
+  fx_sizes,
+  \(x) run_pa(rodent_mod, x, nsim = 100)
+)
+tictoc::toc()
+
+list_rbind(res_list)
+```
+
+#### Parallel Execution Setup
+
+For parallel processing, we need to attach the data to the model object so it's available to the parallel workers.
+
+```{r}
+# This is sort of weird, we have to add the data back into the model object so that
+# when it gets sent into the parallel workers it has everything it needs
+getData(rodent_mod) <- rodent_counts
+
+parallel::detectCores()
+```
+
+#### Running with Parallel Workers
+
+Using `purrr::in_parallel()` with the `mirai` backend, we can distribute the work across multiple CPU cores.
+
+```{r}
+tictoc::tic("Parallel, 10 workers")
+mirai::daemons(10)
+
+res_list <- map(
+  fx_sizes,
+  in_parallel(
+    \(x) run_pa(model, x, nsim = 100),
+    # need to send the objects into the workers
+    run_pa = run_pa,
+    model = rodent_mod
+  )
+)
+
+# Clean up the parallel workers
+mirai::daemons(0)
+tictoc::toc()
+
+list_rbind(res_list)
+```
+
+The parallel approach should show significant time savings, especially as the number of different effect sizes tested and the number of simulations increases.
