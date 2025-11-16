@@ -2,6 +2,39 @@ library("tidyverse")
 library("readxl")
 library("fs")
 
+## Create a for loop to make and save plots for each rodent site (plot)
+
+rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
+
+rodent_counts <- rodents |>
+  filter(species == "DM") |>
+  group_by(year, plot) |>
+  summarise(n = n()) |>
+  ungroup()
+
+rodent_sites <- unique(rodent_counts$plot)
+out_dir <- "figures/rodent_sites/"
+dir_create(out_dir)
+
+for (p in rodent_sites) {
+  site_data <- rodent_counts |> filter(plot == p)
+
+  site_plot <- ggplot(site_data, aes(x = year, y = n)) +
+    geom_point() +
+    labs(
+      title = paste("Rodent counts for Plot", p),
+      x = "Year",
+      y = "Count of rodents"
+    )
+
+  ggsave(
+    filename = paste0(out_dir, "rodent_plot_", p, ".png"),
+    plot = site_plot
+  )
+}
+
+#### Functional programming with purrr
+
 ## Our turn
 data1952 <- read_excel("data/gapminder/1952.xlsx")
 data1957 <- read_excel("data/gapminder/1957.xlsx")
@@ -23,9 +56,7 @@ get_year("taylor/swift/1989.txt")
 
 # ?set_names(), ?as.list()
 paths <-
-  # get the filepaths from the directory
   fs::dir_ls("data/gapminder") |>
-  # extract the year as names
   set_names(get_year)
 
 paths
@@ -33,11 +64,35 @@ paths
 # ?read_excel(), ?list_rbind(), ?parse_number()
 data <-
   paths |>
-  # read each file from excel
   map(read_excel) |>
-  # keep only non-null elements
-  # set list-names as column `year`
-  # bind into single data-frame
   list_rbind(names_to = "year") |>
-  # convert year to number
   mutate(year = parse_number(year))
+
+# Rodent plots with purrr
+
+site_plots <- purrr::map(
+  rodent_sites,
+  \(p) {
+    site_data <- rodent_counts |> filter(plot == p)
+
+    site_plot <- ggplot(site_data, aes(x = year, y = n)) +
+      geom_point() +
+      geom_line() +
+      labs(
+        title = paste("Rodent counts for Plot", p),
+        x = "Year",
+        y = "Count of rodents"
+      )
+  }
+)
+
+purrr::walk2(
+  site_plots,
+  rodent_sites,
+  \(p, n) {
+    ggsave(
+      filename = paste0(out_dir, "new_rodent_plot_", n, ".png"),
+      plot = p
+    )
+  }
+)
