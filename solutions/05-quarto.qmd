@@ -1,6 +1,10 @@
 ---
 title: Hello, Quarto
-format: html
+author: Andy Teucher
+date: "`{r} Sys.Date()`"
+format: typst
+params:
+  island: "Torgersen"
 ---
 
 ```{r}
@@ -14,16 +18,20 @@ library(palmerpenguins)
 
 The `penguins` data from the [**palmerpenguins**](https://allisonhorst.github.io/palmerpenguins) package contains size measurements for `{r} nrow(penguins)` penguins from three species observed on three islands in the Palmer Archipelago, Antarctica.
 
-@fig-plot-penguins shows the relationship between flipper and bill lengths of these penguins.
+@fig-plot-penguins shows the relationship between flipper and bill lengths of these penguins for the island `{r} params$island`.
 
 ```{r}
 #| label: fig-plot-penguins
 #| fig-cap: Flipper and bill length for penguins at Palmer Station LTER
 #| warning: false
-ggplot(penguins, aes(x = flipper_length_mm, y = bill_length_mm)) +
+#| echo: false
+penguins |> 
+  filter(island == params$island) |> 
+ggplot(aes(x = flipper_length_mm, y = bill_length_mm)) +
   geom_point(aes(color = species, shape = species)) +
   scale_color_manual(values = c("darkorange", "purple", "cyan4")) +
   labs(
+    title = paste("Flipper vs Bill length on Island", params$island),
     x = "Flipper length (mm)",
     y = "Bill length (mm)",
     color = "Penguin species",
