@@ -1,3 +1,6 @@
+# install.packages("stringr")
+library(stringr)
+
 # simple stringr functions
 
 parks <- c(

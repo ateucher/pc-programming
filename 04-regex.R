@@ -1,3 +1,6 @@
+# install.packages("stringr")
+library(stringr)
+
 # simple stringr functions
 
 parks <- c(
@@ -19,8 +22,7 @@ files <- c(
 
 
 
-
-# Regex practice
+# First regex pattern: The dot . matches any character
 
 species <- c("PIEN", "PICO", "ABLA", "POTR")
 

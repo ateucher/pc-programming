@@ -35,6 +35,22 @@ for (p in rodent_sites) {
 
 #### Functional programming with purrr
 
+## Exploring lists
+my_list <- list(
+  c(1, 2, 3),
+  c("a", "b", "c"),
+  data.frame(x = 1:3, y = c("A", "B", "C"))
+)
+my_list
+
+my_named_list <- list(
+  numbers = c(1, 2, 3),
+  letters = c("a", "b", "c"),
+  df = data.frame(x = 1:3, y = c("A", "B", "C"))
+)
+my_named_list
+names(my_named_list)
+
 ## Our turn
 data1952 <- read_excel("data/gapminder/1952.xlsx")
 data1957 <- read_excel("data/gapminder/1957.xlsx")

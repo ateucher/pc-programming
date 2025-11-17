@@ -2,6 +2,11 @@ library("tidyverse")
 library("readxl")
 library("fs")
 
+## Basic loops
+
+parks <- c("Banff", "Jasper", "Yoho", "Riding Mountain")
+provinces <- c("Alberta", "Alberta", "British Columbia", "Manitoba")
+
 ## Create a for loop to make and save a plot for each rodent site (plot)
 
 rodents <- read_csv("PortalData/Rodents/Portal_rodent.csv")
@@ -35,7 +40,11 @@ for (what are we iterating over) {
 }
 
 ##################################################
-#### Our turn: Functional programming with purrr
+#### Functional programming with purrr
+
+## Exploring lists
+
+
 
 ## Our turn
 data1952 <- read_excel("data/gapminder/1952.xlsx")
