@@ -1,5 +1,5 @@
 ---
-title: Hello, Quarto
+title: The Penguins of Palmer Archipelagp
 author: Andy Teucher
 date: "`{r} Sys.Date()`"
 format: typst
